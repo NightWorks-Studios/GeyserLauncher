@@ -86,6 +86,6 @@ Release 构建默认生成未签名 APK。请使用自己的 Android 签名证�
 ## 第三方项目
 
 - [Geyser](https://github.com/GeyserMC/Geyser) 由 GeyserMC 开发，本应用仅通过其官方服务下载并启动 Standalone 版本。
-- APK 中包含运行所需的 Java 运行时及开源依赖，这些组件分别适用其各自的许可条款。
+- [Zalith Launcher](https://docs.zalithlauncher.cn/) 使用了由 Zalith Launcher 编译的 JRE25，并内置在APP中。
 
 本项目不是 GeyserMC 官方项目，也不受 GeyserMC 认可或维护。
