@@ -1,5 +1,11 @@
 package dev.lisfox.geyserlauncher.ui.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -7,11 +13,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.PowerSettingsNew
@@ -20,14 +31,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.lisfox.geyserlauncher.runtime.LogLevel
+import dev.lisfox.geyserlauncher.runtime.RuntimeLog
 import dev.lisfox.geyserlauncher.runtime.RuntimePhase
 import dev.lisfox.geyserlauncher.ui.theme.Danger
 import dev.lisfox.geyserlauncher.ui.theme.Primary
@@ -52,6 +68,7 @@ private data class HomeVisualState(
 fun HomeScreen(
     phase: RuntimePhase,
     status: String,
+    logs: List<RuntimeLog>,
     geyserVersion: String?,
     onToggle: () -> Unit
 ) {
@@ -112,13 +129,79 @@ fun HomeScreen(
             fontWeight = FontWeight.Medium
         )
         Spacer(Modifier.size(8.dp))
-        Text(
-            visual.description,
-            color = if (phase == RuntimePhase.STOPPED) TextSecondary else visual.accent,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 2
-        )
+        if (phase != RuntimePhase.STARTING) {
+            Text(
+                visual.description,
+                color = if (phase == RuntimePhase.STOPPED) TextSecondary else visual.accent,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2
+            )
+        }
+        AnimatedVisibility(
+            visible = phase == RuntimePhase.STARTING,
+            enter = fadeIn(tween(220)) + expandVertically(expandFrom = Alignment.Top, animationSpec = tween(320)),
+            exit = fadeOut(tween(160)) + shrinkVertically(shrinkTowards = Alignment.Top, animationSpec = tween(260))
+        ) {
+            StartupLogPanel(logs)
+        }
         Spacer(Modifier.weight(1f))
     }
 
+}
+
+@Composable
+private fun StartupLogPanel(logs: List<RuntimeLog>) {
+    val listState = rememberLazyListState()
+    val visibleLogs = remember(logs) { logs.takeLast(80) }
+
+    LaunchedEffect(visibleLogs.lastOrNull()?.id) {
+        if (visibleLogs.isNotEmpty()) listState.animateScrollToItem(visibleLogs.lastIndex)
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(166.dp)
+            .padding(top = 18.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFF171A22)
+    ) {
+        if (visibleLogs.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "正在等待启动日志...",
+                    modifier = Modifier.padding(14.dp),
+                    color = Color(0xFF8D96A8),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                state = listState
+            ) {
+                items(visibleLogs, key = RuntimeLog::id) { log ->
+                    Text(
+                        text = log.text,
+                        modifier = Modifier.padding(vertical = 2.dp),
+                        color = startupLogColor(log.level),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun startupLogColor(level: LogLevel): Color = when (level) {
+    LogLevel.INFO -> Color(0xFFD6DCE8)
+    LogLevel.SUCCESS -> Color(0xFF83D9A5)
+    LogLevel.WARNING -> Color(0xFFFFCF78)
+    LogLevel.ERROR -> Color(0xFFFF8E96)
+    LogLevel.DEBUG -> Color(0xFFAFA7D8)
 }

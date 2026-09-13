@@ -138,6 +138,7 @@ fun GeyserLauncherApp(
                 HomeScreen(
                     phase = phase,
                     status = status,
+                    logs = logs,
                     geyserVersion = distribution.installedVersion,
                     onToggle = launcherViewModel::toggle
                 )
